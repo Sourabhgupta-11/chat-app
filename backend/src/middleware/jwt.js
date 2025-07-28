@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
+import User from '../models/user.model.js';
 dotenv.config();
 
 export const generateToken=(userData,res)=>{
@@ -17,17 +18,19 @@ export const generateToken=(userData,res)=>{
     return token;
 }
 
-export const jwtAuthMiddleware=(req,res,next)=>{
+export const jwtAuthMiddleware=async(req,res,next)=>{
 
-    const auth=req.headers.authorization
-    if(!auth) return res.status(401).json({error: 'Token Not Found'})
+    const token=req.cookies.jwt;
 
-    const token=req.headers.authorization.split(' ')[1];  //authorization is under header and in auth "bearer token" so to get token we do split and choose index 1 element that is token
-    if(!token) return res.status(401).json({error: 'unauthorized'})
+    if(!token) return res.status(401).json({error: 'Unauthorized'})
 
     try{
         const decoded=jwt.verify(token,process.env.JWT_SECRET)
-        req.user=decoded;
+        if(!decoded) return res.status(401).json({message:"Unauthorized"})
+
+        const user=await User.findById(decoded.id).select("-password");
+        if(!user) return res.status(404).json({message:"User not found"})
+        req.user=user;
         next();
     }
     catch(err){
