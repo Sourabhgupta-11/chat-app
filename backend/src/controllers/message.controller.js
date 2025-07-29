@@ -1,3 +1,4 @@
+import cloudinary from "../lib/cloudinary.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 
@@ -24,6 +25,31 @@ export const getMessages=async(req,res)=>{
             ]
         })
         res.status(200).json(messages)
+    } catch (error) {
+        res.status(500).json({err:"Internal Server Error"})
+    }
+}
+
+export const sendMessage=async(req,res)=>{
+    try {
+        const {text,image}=req.body;
+        const {id:receiverId}=req.params;
+        const senderId=req.user._id;
+
+        let imageURL;
+        if(image){
+            const uploadImage=await cloudinary.uploader.upload(image);
+            imageURL=uploadImage.secure_url;
+        }
+
+        const message=new Message({
+            senderId,
+            receiverId,
+            text,
+            image:imageURL,
+        })
+
+        res.status(201).json(message);
     } catch (error) {
         res.status(500).json({err:"Internal Server Error"})
     }
